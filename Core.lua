@@ -180,8 +180,44 @@ function Core:OnEnable()
       self:Render()
     end
   )
+  self:RegisterBucketEvent(
+    { "PROFESSION_EQUIPMENT_CHANGED" },
+    2,
+    function()
+      -- Note: ClearProgressCache() is intentionally omitted -- profGearScore
+      -- is not stored in progressCache, so clearing it would be a no-op here.
+      Data:ScanProfessionEquipment()
+      self:Render()
+    end
+  )
+  self:RegisterBucketEvent(
+    { "GET_ITEM_INFO_RECEIVED" },
+    1,
+    function()
+      -- Re-scan if any profession gear slot returned nil on initial scan due to
+      -- uncached item data. equipment~=nil means scanned; equipment[i]==nil means
+      -- slot appeared empty because item data wasn't cached yet.
+      local character = Data:GetCharacter()
+      if not character then return end
+      local needsRescan = false
+      Utils:TableForEach(character.professions or {}, function(cp)
+        if cp.equipment ~= nil then
+          for i = 1, 3 do
+            if cp.equipment[i] and cp.equipment[i].pending then
+              needsRescan = true
+            end
+          end
+        end
+      end)
+      if needsRescan then
+        Data:ScanProfessionEquipment()
+        self:Render()
+      end
+    end
+  )
 
   Data:ScanAll()
+  Data:ScanProfessionEquipment()   -- scan profession gear slots on load
   self:Render()
 end
 
