@@ -7,20 +7,21 @@ local addon = select(2, ...)
 local UI = {}
 addon.UI = UI
 
+UI.TableCollection = {}
 UI.ScrollCollection = {}
 
 local Utils = addon.Utils
+local Constants = addon.Constants
 
 function UI:CreateScrollFrame(config)
-  local tableCount = addon.Table and addon.Table.collection and Utils:TableCount(addon.Table.collection) or 0
-  local frame = CreateFrame("ScrollFrame", "WeeklyKnowledgeScrollFrame" .. (tableCount + 1))
-  local defaultScrollConfig = {
-    scrollSpeedHorizontal = 20,
-    scrollSpeedVertical = 20,
-  }
-  local mergedScrollConfig = CopyTable(defaultScrollConfig)
-  Utils:TableMergeDeep(mergedScrollConfig, config or {})
-  frame.config = mergedScrollConfig
+  local frame = CreateFrame("ScrollFrame", "WeeklyKnowledgeScrollFrame" .. (Utils:TableCount(self.TableCollection) + 1))
+  frame.config = CreateFromMixins(
+    {
+      scrollSpeedHorizontal = 20,
+      scrollSpeedVertical = 20,
+    },
+    config or {}
+  )
 
   frame.content = CreateFrame("Frame", "$parentContent", frame)
   frame.scrollbarH = CreateFrame("Slider", "$parentScrollbarH", frame, "UISliderTemplate")
@@ -105,4 +106,270 @@ function UI:CreateScrollFrame(config)
 
   frame:RenderScrollFrame()
   return frame
+end
+
+function UI:CreateTableFrame(config)
+  local tableFrame = CreateFrame("Frame", "WeeklyKnowledgeTable" .. (Utils:TableCount(self.TableCollection) + 1))
+  tableFrame.config = CreateFromMixins(
+    {
+      header = {
+        enabled = true,
+        sticky = false,
+        height = 30,
+      },
+      rows = {
+        height = 22,
+        highlight = true,
+        striped = true
+      },
+      columns = {
+        width = 100,
+        highlight = false,
+        striped = false
+      },
+      cells = {
+        padding = Constants.TABLE_CELL_PADDING,
+        highlight = false
+      },
+      ---@type WK_TableData
+      data = {
+        columns = {},
+        rows = {},
+      },
+    },
+    config or {}
+  )
+  tableFrame.rows = {}
+  tableFrame.data = tableFrame.config.data
+  tableFrame.scrollFrame = self:CreateScrollFrame({
+    name = "$parentScrollFrame",
+    scrollSpeedVertical = tableFrame.config.rows.height * 2
+  })
+
+  ---Set the table data
+  function tableFrame:SetData(data)
+    self.data = data
+    self:RenderTable()
+  end
+
+  function tableFrame:SetRowHeight(height)
+    self.config.rows.height = height
+    self:RenderTable()
+  end
+
+  function tableFrame:RenderTable()
+    local offsetY = 0
+    local offsetX = 0
+
+    Utils:TableForEach(tableFrame.rows, function(rowFrame) rowFrame:Hide() end)
+    Utils:TableForEach(tableFrame.data.rows, function(row, rowIndex)
+      local rowFrame = tableFrame.rows[rowIndex]
+      local rowHeight = tableFrame.config.rows.height
+      local isStickyRow = false
+
+      if not rowFrame then
+        rowFrame = CreateFrame("Button", "$parentRow" .. rowIndex, tableFrame)
+        rowFrame.columns = {}
+        tableFrame.rows[rowIndex] = rowFrame
+      end
+
+      if rowIndex == 1 then
+        if tableFrame.config.header.enabled then
+          rowHeight = tableFrame.config.header.height
+        end
+        if tableFrame.config.header.sticky then
+          isStickyRow = true
+        end
+      end
+
+      -- Sticky header
+      if isStickyRow then
+        rowFrame:SetParent(tableFrame)
+        rowFrame:SetPoint("TOPLEFT", tableFrame, "TOPLEFT", 0, 0)
+        rowFrame:SetPoint("TOPRIGHT", tableFrame, "TOPRIGHT", 0, 0)
+        if not row.backgroundColor then
+          Utils:SetBackgroundColor(rowFrame, 0, 0, 0, 0.3)
+        end
+      else
+        rowFrame:SetParent(tableFrame.scrollFrame.content)
+        rowFrame:SetPoint("TOPLEFT", tableFrame.scrollFrame.content, "TOPLEFT", 0, -offsetY)
+        rowFrame:SetPoint("TOPRIGHT", tableFrame.scrollFrame.content, "TOPRIGHT", 0, -offsetY)
+        if tableFrame.config.rows.striped and rowIndex % 2 == 1 then
+          Utils:SetBackgroundColor(rowFrame, 1, 1, 1, .02)
+        end
+      end
+
+      if row.backgroundColor then
+        Utils:SetBackgroundColor(rowFrame, row.backgroundColor.r, row.backgroundColor.g, row.backgroundColor.b, row.backgroundColor.a)
+      end
+
+      rowFrame.data = row
+      rowFrame:SetHeight(rowHeight)
+      rowFrame:SetScript("OnEnter", function() rowFrame:onEnterHandler(rowFrame) end)
+      rowFrame:SetScript("OnLeave", function() rowFrame:onLeaveHandler(rowFrame) end)
+      rowFrame:SetScript("OnClick", function() rowFrame:onClickHandler(rowFrame) end)
+      rowFrame:Show()
+
+      function rowFrame:onEnterHandler(f)
+        if rowIndex > 1 or not tableFrame.config.header.enabled then
+          Utils:SetHighlightColor(rowFrame, 1, 1, 1, .03)
+        end
+        if row.onEnter then
+          row:onEnter(f)
+        end
+      end
+
+      function rowFrame:onLeaveHandler(f)
+        if rowIndex > 1 or not tableFrame.config.header.enabled then
+          Utils:SetHighlightColor(rowFrame, 1, 1, 1, 0)
+        end
+        if row.onLeave then
+          row:onLeave(f)
+        end
+      end
+
+      function rowFrame:onClickHandler(f)
+        if row.onClick then
+          row:onClick(f)
+        end
+      end
+
+      offsetX = 0
+      Utils:TableForEach(rowFrame.columns, function(columnFrame) columnFrame:Hide() end)
+      Utils:TableForEach(row.columns, function(column, columnIndex)
+        local columnFrame = rowFrame.columns[columnIndex]
+        local columnConfig = tableFrame.data.columns[columnIndex]
+        local columnWidth = columnConfig and columnConfig.width or tableFrame.config.columns.width
+        local columnTextAlign = columnConfig and columnConfig.align or "LEFT"
+
+        if not columnFrame then
+          columnFrame = CreateFrame("Button", "$parentCol" .. columnIndex, rowFrame)
+          columnFrame.text = columnFrame:CreateFontString("$parentText", "OVERLAY")
+          columnFrame.text:SetFontObject("GameFontHighlightSmall")
+          rowFrame.columns[columnIndex] = columnFrame
+        end
+
+        columnFrame.data = column
+        columnFrame:SetPoint("TOPLEFT", rowFrame, "TOPLEFT", offsetX, 0)
+        columnFrame:SetPoint("BOTTOMLEFT", rowFrame, "BOTTOMLEFT", offsetX, 0)
+        columnFrame:SetWidth(columnWidth)
+        columnFrame:SetScript("OnEnter", function() columnFrame:onEnterHandler(columnFrame) end)
+        columnFrame:SetScript("OnLeave", function() columnFrame:onLeaveHandler(columnFrame) end)
+        columnFrame:SetScript("OnClick", function() columnFrame:onClickHandler(columnFrame) end)
+        if column.icons then
+          -- Icon cell: hide the FontString, show/create icon child frames
+          columnFrame.text:Hide()
+          columnFrame.iconFrames = columnFrame.iconFrames or {}
+
+          for i, iconData in ipairs(column.icons) do
+            local iconFrame = columnFrame.iconFrames[i]
+            if not iconFrame then
+              iconFrame = CreateFrame("Frame", nil, columnFrame)
+              iconFrame.texture = iconFrame:CreateTexture(nil, "ARTWORK")
+              iconFrame.texture:SetAllPoints()
+              iconFrame.overlay = iconFrame:CreateTexture(nil, "OVERLAY")
+              columnFrame.iconFrames[i] = iconFrame
+            end
+
+            local iconSize = iconData.size or 18
+            iconFrame:SetSize(iconSize, iconSize)
+            -- Quality star atlas is 30x34; render at 14x14 (slight crop accepted)
+            iconFrame.overlay:SetSize(14, 14)
+            iconFrame.overlay:ClearAllPoints()
+            iconFrame.overlay:SetPoint("BOTTOMRIGHT", iconFrame, "BOTTOMRIGHT", 2, -2)
+            -- Callers must always provide iconFileID; nil renders as a blank frame (acceptable for empty slots using EMPTY_SLOT_TEXTURE).
+            iconFrame.texture:SetTexture(iconData.iconFileID)
+            if iconData.unscanned then
+              iconFrame.texture:SetVertexColor(0.4, 0.4, 0.4, 1)  -- dim unscanned slots
+            else
+              iconFrame.texture:SetVertexColor(1, 1, 1, 1)
+            end
+
+            if iconData.overlayAtlas then
+              iconFrame.overlay:SetAtlas(iconData.overlayAtlas)
+              iconFrame.overlay:Show()
+            else
+              iconFrame.overlay:Hide()
+            end
+
+            -- Position icons left-aligned with standard cell padding, spaced by (size + 2)
+            iconFrame:ClearAllPoints()
+            iconFrame:SetPoint("LEFT", columnFrame, "LEFT",
+                tableFrame.config.cells.padding + (i - 1) * (iconSize + 2), 0)
+            if iconData.onEnter or iconData.onLeave then
+              iconFrame:EnableMouse(true)
+              iconFrame:SetScript("OnEnter", iconData.onEnter or nil)
+              iconFrame:SetScript("OnLeave", iconData.onLeave or nil)
+              -- Forward clicks to the parent columnFrame so row/column onClick handlers still fire
+              iconFrame:SetScript("OnMouseUp", function() columnFrame:onClickHandler(columnFrame) end)
+            else
+              iconFrame:EnableMouse(false)
+              iconFrame:SetScript("OnEnter", nil)
+              iconFrame:SetScript("OnLeave", nil)
+              iconFrame:SetScript("OnMouseUp", nil)
+            end
+            iconFrame:Show()
+          end
+
+          -- Hide any leftover icon frames from a previous wider render
+          for i = #column.icons + 1, #columnFrame.iconFrames do
+            columnFrame.iconFrames[i]:Hide()
+          end
+        else
+          -- Text cell: show the FontString, hide any icon child frames
+          columnFrame.text:Show()
+          columnFrame.text:SetWordWrap(false)
+          columnFrame.text:SetJustifyH(columnTextAlign)
+          columnFrame.text:SetPoint("TOPLEFT", columnFrame, "TOPLEFT", tableFrame.config.cells.padding, -tableFrame.config.cells.padding)
+          columnFrame.text:SetPoint("BOTTOMRIGHT", columnFrame, "BOTTOMRIGHT", -tableFrame.config.cells.padding, tableFrame.config.cells.padding)
+          columnFrame.text:SetText(column.text)
+          if columnFrame.iconFrames then
+            for _, f in ipairs(columnFrame.iconFrames) do f:Hide() end
+          end
+        end
+        columnFrame:Show()
+
+        if column.backgroundColor then
+          Utils:SetBackgroundColor(columnFrame, column.backgroundColor.r, column.backgroundColor.g, column.backgroundColor.b, column.backgroundColor.a)
+        end
+
+        function columnFrame:onEnterHandler(f)
+          rowFrame:onEnterHandler(f)
+          if column.onEnter then
+            column.onEnter(f)
+          end
+        end
+
+        function columnFrame:onLeaveHandler(f)
+          rowFrame:onLeaveHandler(f)
+          if column.onLeave then
+            column.onLeave(f)
+          end
+        end
+
+        function columnFrame:onClickHandler(f)
+          rowFrame:onClickHandler(f)
+          if column.onClick then
+            column:onClick(f)
+          end
+        end
+
+        offsetX = offsetX + columnWidth
+      end)
+
+      if not isStickyRow then
+        offsetY = offsetY + rowHeight
+      end
+    end)
+
+    tableFrame.scrollFrame:SetParent(tableFrame)
+    tableFrame.scrollFrame:SetPoint("TOPLEFT", tableFrame, "TOPLEFT", 0, tableFrame.config.header.sticky and -tableFrame.config.header.height or 0)
+    tableFrame.scrollFrame:SetPoint("BOTTOMRIGHT", tableFrame, "BOTTOMRIGHT")
+    tableFrame.scrollFrame.content:SetSize(offsetX, offsetY)
+  end
+
+  tableFrame.scrollFrame:HookScript("OnSizeChanged", function() tableFrame:RenderTable() end)
+  tableFrame:RenderTable()
+  table.insert(self.TableCollection, tableFrame)
+  return tableFrame;
 end
