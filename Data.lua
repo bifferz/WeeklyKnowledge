@@ -555,8 +555,12 @@ function Data:ScanProfessionEquipment()
       end
     end
 
-    if not skillLineID then
-      -- No tool equipped or subType didn't match; fall back to index-based mapping
+    if not skillLineID and toolLink and not toolSubType then
+      -- Tool is equipped but item data not yet cached (toolSubType is nil).
+      -- Skip this slot group entirely so equipment stays nil (unscanned),
+      -- allowing GET_ITEM_INFO_RECEIVED to trigger a clean rescan once data arrives.
+    elseif not skillLineID then
+      -- No tool equipped; fall back to index-based mapping so empty slots are recorded.
       local professionIndex = professionIndexes[slotGroup]
       if professionIndex then
         local _, _, _, _, _, _, slID = GetProfessionInfo(professionIndex)

@@ -201,7 +201,11 @@ function Core:OnEnable()
       if not character then return end
       local needsRescan = false
       Utils:TableForEach(character.professions or {}, function(cp)
-        if cp.equipment ~= nil then
+        -- Rescan if any slot has a pending sentinel (item data was missing on last scan)
+        -- or if equipment is nil (tool item was uncached so slot group was skipped entirely)
+        if cp.equipment == nil then
+          needsRescan = true
+        elseif cp.equipment ~= nil then
           for i = 1, 3 do
             if cp.equipment[i] and cp.equipment[i].pending then
               needsRescan = true
