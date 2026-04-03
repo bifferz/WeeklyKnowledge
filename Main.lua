@@ -44,6 +44,68 @@ function Main:ToggleWindow()
   self:Render()
 end
 
+local EMPTY_SLOT_TEXTURE = 4760248  -- confirmed in-game via GetInventorySlotInfo [2]
+
+local function SlotBelongsToExpansion(slot, expansionID)
+  return slot.itemExpansionID == expansionID
+end
+
+local function GearCellIcons(characterProfession, skillLineVariantID)
+  local function onLeave() GameTooltip:Hide() end
+
+  if characterProfession.equipment == nil then
+    -- Never scanned: 3 dimmed empty slot icons with no overlay
+    local onEnter = function(frame)
+      GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
+      GameTooltip:SetText("Not yet scanned", 1, 1, 1)
+      GameTooltip:AddLine("Log in on this character to scan their gear.", nil, nil, nil, true)
+      GameTooltip:Show()
+    end
+    return {
+      { iconFileID = EMPTY_SLOT_TEXTURE, unscanned = true, onEnter = onEnter, onLeave = onLeave },
+      { iconFileID = EMPTY_SLOT_TEXTURE, unscanned = true, onEnter = onEnter, onLeave = onLeave },
+      { iconFileID = EMPTY_SLOT_TEXTURE, unscanned = true, onEnter = onEnter, onLeave = onLeave },
+    }
+  end
+
+  local variant = Data:GetSkillLineVariantByID(skillLineVariantID)
+  local expansionID = variant and variant.expansionID
+
+  local icons = {}
+  for i = 1, 3 do
+    local slot = characterProfession.equipment[i]
+    local slotBelongs = slot and not slot.pending and expansionID and SlotBelongsToExpansion(slot, expansionID)
+    if slotBelongs then
+      -- Item equipped and belongs to this expansion: full brightness icon + quality star overlay
+      local itemLink = slot.itemLink
+      icons[i] = {
+        iconFileID   = slot.iconFileID,
+        overlayAtlas = "Professions-ChatIcon-Quality-Tier" .. slot.craftingRank,
+        onEnter      = function(frame)
+          GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
+          GameTooltip:SetHyperlink(itemLink)
+          GameTooltip:Show()
+        end,
+        onLeave      = onLeave,
+      }
+    else
+      -- Scanned empty, wrong expansion gear, or item data still loading
+      local isEmpty = slot == nil or (slot and not slot.pending and not slotBelongs)
+      icons[i] = {
+        iconFileID = EMPTY_SLOT_TEXTURE,
+        onEnter    = function(frame)
+          GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
+          GameTooltip:SetText(isEmpty and "Empty" or "Loading...", 1, 1, 1)
+          GameTooltip:Show()
+        end,
+        onLeave    = onLeave,
+      }
+    end
+  end
+  return icons
+end
+
+
 function Main:Render()
   local selectedExpansions = Data.db.global.main.selectedExpansions or {}
   local expansions = Data:GetExpansions()
@@ -1036,6 +1098,39 @@ function Main:GetTableColumns(unfiltered)
           local totalA, totalB = totalKnowledgePoints(a.data), totalKnowledgePoints(b.data)
           if totalA ~= totalB then return totalA < totalB end
           return a.data.skillLineVariantID < b.data.skillLineVariantID
+        end,
+      },
+    },
+    {
+      id           = "gear",
+      headerText   = "Gear",
+      width        = 90,
+      align        = "CENTER",
+      toggleHidden = true,
+      onEnter      = function(cellFrame)
+        GameTooltip:SetOwner(cellFrame, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Gear", 1, 1, 1)
+        GameTooltip:AddLine("Profession tool and accessories.", nil, nil, nil, true)
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine("Sorted by gear score (0-45): each slot scores 1-5 for Uncommon, 6-10 for Rare, and 11-15 for Epic, based on item rank.", nil, nil, nil, true)
+        GameTooltip:Show()
+      end,
+      onLeave      = function() GameTooltip:Hide() end,
+      renderCell   = function(data)
+        return { icons = GearCellIcons(data.characterProfession, data.skillLineVariantID) }
+      end,
+      sorting      = {
+        enabled = true,
+        compare = function(a, b)
+          local scoreA = a.data.characterProfession.profGearScore
+          local scoreB = b.data.characterProfession.profGearScore
+          if scoreA == nil and scoreB == nil then
+            return (a.data.character.lastUpdate or 0) < (b.data.character.lastUpdate or 0)
+          end
+          if scoreA == nil then return true end
+          if scoreB == nil then return false end
+          if scoreA ~= scoreB then return scoreA < scoreB end
+          return (a.data.character.lastUpdate or 0) < (b.data.character.lastUpdate or 0)
         end,
       },
     },
