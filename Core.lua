@@ -222,7 +222,6 @@ function Core:OnEnable()
   )
 
   Data:ScanAll()
-  Data:ScanProfessionEquipment()   -- scan profession gear slots on load
   self:Render()
 end
 

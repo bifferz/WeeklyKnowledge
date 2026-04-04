@@ -524,6 +524,7 @@ function Data:ScanAll()
   self:ScanQuests()
   self:ScanProfessions()
   self:ScanCalendar()
+  self:ScanProfessionEquipment()
 end
 
 --- Scan profession gear slots for the current character and store results in AceDB.
