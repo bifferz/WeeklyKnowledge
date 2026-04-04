@@ -6,7 +6,6 @@ local addon = select(2, ...)
 local Data = addon.Data
 local Main = addon.Main
 local Checklist = addon.Checklist
-local Utils = addon.Utils
 local LibDataBroker = LibStub("LibDataBroker-1.1")
 local LibDBIcon = LibStub("LibDBIcon-1.0")
 
@@ -198,23 +197,7 @@ function Core:OnEnable()
       -- Re-scan if any profession gear slot returned nil on initial scan due to
       -- uncached item data. equipment~=nil means scanned; equipment[i]==nil means
       -- slot appeared empty because item data wasn't cached yet.
-      local character = Data:GetCharacter()
-      if not character then return end
-      local needsRescan = false
-      Utils:TableForEach(character.professions or {}, function(cp)
-        -- Rescan if any slot has a pending sentinel (item data was missing on last scan)
-        -- or if equipment is nil (tool item was uncached so slot group was skipped entirely)
-        if cp.equipment == nil then
-          needsRescan = true
-        else
-          for i = 1, 3 do
-            if cp.equipment[i] and cp.equipment[i].pending then
-              needsRescan = true
-            end
-          end
-        end
-      end)
-      if needsRescan then
+      if Data:NeedsProfessionEquipmentRescan() then
         Data:ScanProfessionEquipment()
         self:Render()
       end

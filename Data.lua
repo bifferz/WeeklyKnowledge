@@ -527,6 +527,20 @@ function Data:ScanAll()
   self:ScanProfessionEquipment()
 end
 
+--- Returns true if profession equipment should be rescanned.
+--- True when any profession has never been scanned (equipment==nil) or has pending slots.
+function Data:NeedsProfessionEquipmentRescan()
+  local character = self:GetCharacter()
+  if not character then return false end
+  for _, cp in ipairs(character.professions or {}) do
+    if cp.equipment == nil then return true end
+    for i = 1, 3 do
+      if cp.equipment[i] and cp.equipment[i].pending then return true end
+    end
+  end
+  return false
+end
+
 --- Scan profession gear slots for the current character and store results in AceDB.
 function Data:ScanProfessionEquipment()
   if self:IsInChatMessagingLockdown() then return end
