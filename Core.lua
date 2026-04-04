@@ -194,9 +194,6 @@ function Core:OnEnable()
     { "GET_ITEM_INFO_RECEIVED" },
     1,
     function()
-      -- Re-scan if any profession gear slot returned nil on initial scan due to
-      -- uncached item data. equipment~=nil means scanned; equipment[i]==nil means
-      -- slot appeared empty because item data wasn't cached yet.
       if Data:NeedsProfessionEquipmentRescan() then
         Data:ScanProfessionEquipment()
         self:Render()

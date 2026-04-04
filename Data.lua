@@ -527,8 +527,7 @@ function Data:ScanAll()
   self:ScanProfessionEquipment()
 end
 
---- Returns true if profession equipment should be rescanned.
---- True when any profession has never been scanned (equipment==nil) or has pending slots.
+--- Returns true if any profession has unscanned or pending gear slots.
 function Data:NeedsProfessionEquipmentRescan()
   local character = self:GetCharacter()
   if not character then return false end
