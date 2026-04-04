@@ -559,8 +559,6 @@ function Data:ScanProfessionEquipment()
       -- Tool is equipped but item data not yet cached (toolSubType is nil).
       -- Skip this slot group entirely so equipment stays nil (unscanned),
       -- allowing GET_ITEM_INFO_RECEIVED to trigger a clean rescan once data arrives.
-      local itemID = GetItemInfoInstant(toolLink)
-      if itemID then C_Item.RequestLoadItemDataByID(itemID) end
     elseif not skillLineID then
       -- No tool equipped; fall back to index-based mapping so empty slots are recorded.
       local professionIndex = professionIndexes[slotGroup]
@@ -609,9 +607,6 @@ function Data:ScanProfessionEquipment()
               -- Item data not yet cached; store sentinel so GET_ITEM_INFO_RECEIVED
               -- can distinguish this from a genuinely empty slot.
               equipment[slotIndex] = { itemLink = itemLink, pending = true }
-              -- Explicitly request the item data so GET_ITEM_INFO_RECEIVED fires.
-              local itemID = GetItemInfoInstant(itemLink)
-              if itemID then C_Item.RequestLoadItemDataByID(itemID) end
             end
           end
           -- nil entry in equipment[slotIndex] = scanned, slot genuinely empty
