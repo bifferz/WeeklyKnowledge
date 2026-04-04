@@ -45,6 +45,7 @@ function Main:ToggleWindow()
 end
 
 local EMPTY_SLOT_TEXTURE = 4760248  -- confirmed in-game via GetInventorySlotInfo [2]
+local GEAR_ICON_SIZE = 24
 
 local function SlotBelongsToExpansion(slot, expansionID)
   return slot.itemExpansionID == expansionID
@@ -62,9 +63,9 @@ local function GearCellIcons(characterProfession, skillLineVariantID)
       GameTooltip:Show()
     end
     return {
-      { iconFileID = EMPTY_SLOT_TEXTURE, unscanned = true, onEnter = onEnter, onLeave = onLeave },
-      { iconFileID = EMPTY_SLOT_TEXTURE, unscanned = true, onEnter = onEnter, onLeave = onLeave },
-      { iconFileID = EMPTY_SLOT_TEXTURE, unscanned = true, onEnter = onEnter, onLeave = onLeave },
+      { iconFileID = EMPTY_SLOT_TEXTURE, unscanned = true, size = GEAR_ICON_SIZE, onEnter = onEnter, onLeave = onLeave },
+      { iconFileID = EMPTY_SLOT_TEXTURE, unscanned = true, size = GEAR_ICON_SIZE, onEnter = onEnter, onLeave = onLeave },
+      { iconFileID = EMPTY_SLOT_TEXTURE, unscanned = true, size = GEAR_ICON_SIZE, onEnter = onEnter, onLeave = onLeave },
     }
   end
 
@@ -78,9 +79,12 @@ local function GearCellIcons(characterProfession, skillLineVariantID)
     if slotBelongs then
       -- Item equipped and belongs to this expansion: full brightness icon + quality star overlay
       local itemLink = slot.itemLink
+      local qualityColor = ITEM_QUALITY_COLORS[slot.itemQuality]
       icons[i] = {
         iconFileID   = slot.iconFileID,
         overlayAtlas = "Professions-ChatIcon-Quality-Tier" .. slot.craftingRank,
+        borderColor  = qualityColor and {r = qualityColor.r, g = qualityColor.g, b = qualityColor.b},
+        size         = GEAR_ICON_SIZE,
         onEnter      = function(frame)
           GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
           GameTooltip:SetHyperlink(itemLink)
@@ -93,6 +97,7 @@ local function GearCellIcons(characterProfession, skillLineVariantID)
       local isEmpty = slot == nil or (slot and not slot.pending and expansionID ~= nil and not slotBelongs)
       icons[i] = {
         iconFileID = EMPTY_SLOT_TEXTURE,
+        size       = GEAR_ICON_SIZE,
         onEnter    = function(frame)
           GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
           GameTooltip:SetText(isEmpty and "Empty" or "Loading...", 1, 1, 1)

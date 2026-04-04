@@ -267,22 +267,32 @@ function UI:CreateTableFrame(config)
               iconFrame = CreateFrame("Frame", nil, columnFrame)
               iconFrame.texture = iconFrame:CreateTexture(nil, "ARTWORK")
               iconFrame.texture:SetAllPoints()
+              iconFrame.border = iconFrame:CreateTexture(nil, "BACKGROUND")
+              iconFrame.border:SetAllPoints()
               iconFrame.overlay = iconFrame:CreateTexture(nil, "OVERLAY")
               columnFrame.iconFrames[i] = iconFrame
             end
 
             local iconSize = iconData.size or 18
             iconFrame:SetSize(iconSize, iconSize)
-            iconFrame.overlay:SetSize(14, 14)
-            iconFrame.overlay:ClearAllPoints()
-            iconFrame.overlay:SetPoint("BOTTOMRIGHT", iconFrame, "BOTTOMRIGHT", 2, -2)
             iconFrame.texture:SetTexture(iconData.iconFileID)
             if iconData.unscanned then
-              iconFrame.texture:SetVertexColor(0.4, 0.4, 0.4, 1)  -- dim unscanned slots
+              iconFrame.texture:SetVertexColor(0.4, 0.4, 0.4, 1)
             else
               iconFrame.texture:SetVertexColor(1, 1, 1, 1)
             end
 
+            if iconData.borderColor then
+              local bc = iconData.borderColor
+              iconFrame.border:SetColorTexture(bc.r, bc.g, bc.b, 1)
+              iconFrame.border:Show()
+            else
+              iconFrame.border:Hide()
+            end
+
+            iconFrame.overlay:SetSize(10, 10)
+            iconFrame.overlay:ClearAllPoints()
+            iconFrame.overlay:SetPoint("TOPLEFT", iconFrame, "TOPLEFT", -2, 2)
             if iconData.overlayAtlas then
               iconFrame.overlay:SetAtlas(iconData.overlayAtlas)
               iconFrame.overlay:Show()
