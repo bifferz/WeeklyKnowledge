@@ -206,7 +206,7 @@ function Core:OnEnable()
         -- or if equipment is nil (tool item was uncached so slot group was skipped entirely)
         if cp.equipment == nil then
           needsRescan = true
-        elseif cp.equipment ~= nil then
+        else
           for i = 1, 3 do
             if cp.equipment[i] and cp.equipment[i].pending then
               needsRescan = true

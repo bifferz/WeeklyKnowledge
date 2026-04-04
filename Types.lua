@@ -121,12 +121,14 @@
 ---@field completed boolean
 
 ---@class WK_ProfessionGearSlot
----@field itemLink string        -- Full WoW item link
----@field itemQuality integer    -- 2=Uncommon, 3=Rare, 4=Epic
----@field itemLevel integer      -- Item level
----@field iconFileID integer     -- Texture fileID for the item icon
----@field score integer          -- 0-15 computed score for this slot
----@field craftingRank integer   -- 1-5 rank within tier (stored to avoid recalculation at render)
+---@field itemLink string          -- Full WoW item link
+---@field itemQuality integer      -- 2=Uncommon, 3=Rare, 4=Epic
+---@field itemLevel integer        -- Item level
+---@field iconFileID integer       -- Texture fileID for the item icon
+---@field score integer            -- 0-15 computed score for this slot
+---@field craftingRank integer     -- 1-5 rank within tier (stored to avoid recalculation at render)
+---@field itemExpansionID integer? -- Expansion that owns this item (position 15 from C_Item.GetItemInfo)
+---@field pending boolean?         -- true = item data not yet in cache; slot will be rescanned on GET_ITEM_INFO_RECEIVED
 
 ---@class WK_CharacterProfession
 ---@field enabled boolean

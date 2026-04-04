@@ -90,7 +90,7 @@ local function GearCellIcons(characterProfession, skillLineVariantID)
       }
     else
       -- Scanned empty, wrong expansion gear, or item data still loading
-      local isEmpty = slot == nil or (slot and not slot.pending and not slotBelongs)
+      local isEmpty = slot == nil or (slot and not slot.pending and expansionID ~= nil and not slotBelongs)
       icons[i] = {
         iconFileID = EMPTY_SLOT_TEXTURE,
         onEnter    = function(frame)

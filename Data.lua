@@ -536,7 +536,7 @@ function Data:ScanProfessionEquipment()
   local professionIndex1, professionIndex2 = GetProfessions()
   local professionIndexes = { professionIndex1, professionIndex2 }
 
-  for slotGroup, group in ipairs(PROF_SLOT_GROUPS) do
+  for _, group in ipairs(PROF_SLOT_GROUPS) do
     -- Determine which profession owns this slot group by matching the tool slot item's
     -- subType (e.g. "Enchanting") against GetProfessionInfo name (position 1).
     -- GetProfessions() ordering does not reliably map to PROF0/PROF1 slot ordering.

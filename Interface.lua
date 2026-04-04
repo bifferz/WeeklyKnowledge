@@ -273,11 +273,9 @@ function UI:CreateTableFrame(config)
 
             local iconSize = iconData.size or 18
             iconFrame:SetSize(iconSize, iconSize)
-            -- Quality star atlas is 30x34; render at 14x14 (slight crop accepted)
             iconFrame.overlay:SetSize(14, 14)
             iconFrame.overlay:ClearAllPoints()
             iconFrame.overlay:SetPoint("BOTTOMRIGHT", iconFrame, "BOTTOMRIGHT", 2, -2)
-            -- Callers must always provide iconFileID; nil renders as a blank frame (acceptable for empty slots using EMPTY_SLOT_TEXTURE).
             iconFrame.texture:SetTexture(iconData.iconFileID)
             if iconData.unscanned then
               iconFrame.texture:SetVertexColor(0.4, 0.4, 0.4, 1)  -- dim unscanned slots
