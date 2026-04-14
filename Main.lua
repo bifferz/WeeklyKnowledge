@@ -82,7 +82,7 @@ local function GearCellIcons(characterProfession, skillLineVariantID)
       local qualityColor = ITEM_QUALITY_COLORS[slot.itemQuality]
       icons[i] = {
         iconFileID   = slot.iconFileID,
-        overlayAtlas = "Professions-ChatIcon-Quality-Tier" .. slot.craftingRank,
+        overlayAtlas = slot.craftingRank > 0 and ("Professions-ChatIcon-Quality-Tier" .. slot.craftingRank) or nil,
         borderColor  = qualityColor and {r = qualityColor.r, g = qualityColor.g, b = qualityColor.b},
         size         = GEAR_ICON_SIZE,
         onEnter      = function(frame)
@@ -93,14 +93,14 @@ local function GearCellIcons(characterProfession, skillLineVariantID)
         onLeave      = onLeave,
       }
     else
-      -- Scanned empty, wrong expansion gear, or item data still loading
-      local isEmpty = slot == nil or (slot and not slot.pending and expansionID ~= nil and not slotBelongs)
+      -- Scanned empty or wrong expansion gear; pending = item data still loading
+      local isPending = slot and slot.pending
       icons[i] = {
         iconFileID = EMPTY_SLOT_TEXTURE,
         size       = GEAR_ICON_SIZE,
         onEnter    = function(frame)
           GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
-          GameTooltip:SetText(isEmpty and "Empty" or "Loading...", 1, 1, 1)
+          GameTooltip:SetText(isPending and "Loading..." or "Empty", 1, 1, 1)
           GameTooltip:Show()
         end,
         onLeave    = onLeave,
